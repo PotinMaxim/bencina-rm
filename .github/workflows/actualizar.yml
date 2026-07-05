@@ -1,0 +1,31 @@
+name: Actualizar Precios Diarios
+on:
+  schedule:
+    - cron: '0 5 * * *' # Corre automáticamente todos los días a las 02:00 AM hora de Chile
+  workflow_dispatch: # Esto nos deja activar la descarga de forma manual con un botón
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar Código del Repositorio
+        uses: actions/checkout@v3
+
+      - name: Configurar Entorno Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Instalar Dependencias
+        run: pip install requests
+
+      - name: Ejecutar Extractor de Precios
+        run: python extractor.py
+
+      - name: Guardar Cambios en la Base de Datos
+        run: |
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Actions"
+          git add bencina_rm.db
+          git commit -m "Sincronización automática de precios de combustibles" || echo "Sin cambios"
+          git push
