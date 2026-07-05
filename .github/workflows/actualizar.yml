@@ -1,8 +1,8 @@
 name: Actualizar Precios Diarios
 on:
   schedule:
-    - cron: '0 5 * * *' # Corre automáticamente todos los días a las 02:00 AM hora de Chile
-  workflow_dispatch: # Esto nos deja activar la descarga de forma manual con un botón
+    - cron: '0 5 * * *' # Corre de manera automatizada a las 02:00 AM hora de Chile
+  workflow_dispatch: # Habilita el botón manual "Run workflow" en GitHub Actions
 
 jobs:
   run-script:
