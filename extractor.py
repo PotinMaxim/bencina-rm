@@ -2,7 +2,7 @@ import requests
 import sqlite3
 from datetime import datetime
 
-# Cambiamos a la API de Energía Abierta de la CNE que es 100% libre y sin tokens
+# URL oficial de la CNE
 URL_API = "https://api.cne.cl/v1/combustibles/vehicular/estaciones"
 
 def actualizar_base_datos():
@@ -26,17 +26,24 @@ def actualizar_base_datos():
     ''')
     
     try:
-        # Llamamos a la API abierta
-        response = requests.get(URL_API, timeout=20)
+        print("Conectando con la API de la CNE...")
+        # Forzamos un User-Agent para que la API no bloquee a GitHub pensando que es un ataque
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+        response = requests.get(URL_API, headers=headers, timeout=25)
+        
+        print(f"Código de respuesta del servidor CNE: {response.status_code}")
         data = response.json()
         
-        if "resultado" in data:
+        if "resultado" in data and data["resultado"]:
             fecha_hoy = datetime.now().strftime('%Y-%m-%d')
             contador = 0
             
             for est in data["resultado"]:
-                # Filtramos manualmente por la Región Metropolitana (ID: 13)
-                if str(est.get("id_region")) == "13" or est.get("region") == "Región Metropolitana de Santiago":
+                # Filtramos por Región Metropolitana buscando texto o ID
+                nom_region = str(est.get("region", "")).lower()
+                id_reg = str(est.get("id_region", ""))
+                
+                if "metropolitana" in nom_region or id_reg == "13":
                     precios = est.get("precios", {})
                     
                     cursor.execute('''
@@ -57,11 +64,13 @@ def actualizar_base_datos():
                     contador += 1
                     
             conn.commit()
-            print(f"[{fecha_hoy}] ¡Base de datos cargada con {contador} estaciones de la RM!")
+            print(f"--> ¡ÉXITO! Se guardaron {contador} estaciones de la RM en la base de datos.")
         else:
-            print("La API no entregó el formato 'resultado' esperado.")
+            print("--> ERROR: La API respondió pero el formato de los datos no es el esperado o está vacío.")
+            print(f"Contenido recibido (primeros 200 caracteres): {str(data)[:200]}")
+            
     except Exception as e:
-        print(f"Error al conectar con la API: {str(e)}")
+        print(f"--> FALLÓ LA CONEXIÓN: {str(e)}")
     finally:
         conn.close()
 
