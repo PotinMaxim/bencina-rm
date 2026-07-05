@@ -2,15 +2,15 @@ import requests
 import sqlite3
 from datetime import datetime
 
-# Usamos el portal abierto de Energía Abierta (CNE) que no pide token
+# URL pública de la CNE (Región Metropolitana = 13)
 URL_API = "https://api.cne.cl/v1/combustibles/vehicular/estaciones?region=13"
 
 def actualizar_base_datos():
-    # Conectamos con la base de datos local (se creará automáticamente)
+    # Conexión automática con la base de datos SQLite local
     conn = sqlite3.connect("bencina_rm.db")
     cursor = conn.cursor()
     
-    # Creamos la tabla estructural para guardar el historial si no existe
+    # Estructura de la tabla para almacenar el histórico diario
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS registro_precios (
             fecha TEXT,
@@ -28,18 +28,16 @@ def actualizar_base_datos():
     ''')
     
     try:
-        # Hacemos la consulta a internet
+        # Llamada a la API de Energía Abierta
         response = requests.get(URL_API, timeout=15)
         data = response.json()
         
-        # Si la API responde correctamente, guardamos los datos
         if "resultado" in data:
             fecha_hoy = datetime.now().strftime('%Y-%m-%d')
             
             for est in data["resultado"]:
                 precios = est.get("precios", {})
                 
-                # Insertamos los datos de cada bencinera de la RM
                 cursor.execute('''
                     INSERT INTO registro_precios VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (
